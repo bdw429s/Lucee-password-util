@@ -1,3 +1,20 @@
 {
-    "version":"1.0.0"
+    "name":"Lucee Pasword Util",
+    "version":"1.0.1",
+    "author":"Brad Wood",
+    "homepage":"https://github.com/bdw429s/lucee-password-util",
+    "documentation":"https://github.com/bdw429s/lucee-password-util",
+    "repository":{
+        "type":"git",
+        "URL":"https://github.com/bdw429s/lucee-password-util.git"
+    },
+    "bugs":"https://github.com/bdw429s/lucee-password-util/issues",
+    "slug":"lucee-password-util",
+    "shortDescription":"A utility to manage passwords for Lucee and Railo server installs.",
+    "type":"modules",
+    "scripts":{
+        "postVersion":"package set location='bdw429s/lucee-password-util#v`package version`'",
+        "postPublish":"!git push --follow-tags"
+    },
+    "location":"bdw429s/lucee-password-util#v1.0.1"
 }
