@@ -5,12 +5,12 @@ When passing a salt, use this to mimic the same SHA-256 hashing that the Lucee a
 
 Values created by this method would go in one of the following XML files:
 
-*lucee-server.xml*
+**lucee-server.xml**
 * In the root `<lucee-configuration>` tag as the `hspw` attribute.  Applies to the web administrator for the entire server
 * In the root `<lucee-configuration>` tag as the `default-hspw` attribute.  Set's the default password for any new web contexts
 * In the root `<lucee-configuration>` tag as the `salt` attribute.  Set's the salt to use for all passwords
 
-*lucee-web.xml.cfm*
+**lucee-web.xml.cfm**
 * In the root `<lucee-configuration>` tag as the `hspw` attribute.  Applies to the web administrator for that context.
 * In the root `<lucee-configuration>` tag as the `salt` attribute.  Set's the salt to use for all passwords
 							
@@ -22,11 +22,11 @@ Use this to mimic the same SHA-256 hashing that the Lucee or Railo administrator
 
 Values created by this method would go in one of the following XML files:
 
-*lucee-server.xml*
+**lucee-server.xml**
 * In the root <lucee-configuration> tag as the "pw" attribute.  Applies to the web administrator for the entire server
 * In the root <lucee-configuration> tag as the "default-pw" attribute.  Set's the default password for any new web contexts
 
-*lucee-web.xml.cfm*
+**lucee-web.xml.cfm**
 * In the root <lucee-configuration> tag as the "pw" attribute.  Applies to the web administrator for that context.
 							
 # encryptAdministrator
@@ -41,11 +41,11 @@ Used to encrypt a string using the BlowFish algorithm with the same salt used fo
 
 Used to decrypt a string using the BlowFish algorithm with the same salt used for the Lucee or Railo administrator.  
 
-*lucee-server.xml*
+**lucee-server.xml**
 * In the root `<lucee-configuration>` tag as the `password` attribute.  Applies to the web administrator for the entire server
 * In the root `<lucee-configuration>` tag as the `default-password` attribute.  Set's the default password for any new web contexts
 
-*lucee-web.xml.cfm*
+**lucee-web.xml.cfm**
 * In the root `<lucee-configuration>` tag as the `password` attribute.  Applies to the web administrator for that context.
 	
 # encryptDataSource
@@ -58,7 +58,7 @@ Used to decrypt a string using the BlowFish algorithm with the same salt used fo
 
 Values created by this method would go in one of the following files:
 
-*lucee-server.xml*
+**lucee-server.xml**
 * In a `<data-source>` tag's password attribute, preceded by the string `encrypted:`
 
 ```xml	 
@@ -70,10 +70,10 @@ Values created by this method would go in one of the following files:
   	password="encrypted:3448cf390fa78e1cbb7745607a68ff6e282d60c044ad09ed" />
 ```
 	
-*lucee-web.xml.cfm*
+**lucee-web.xml.cfm**
 * In a `<data-source>` tag same as above
 
-*Application.cfc*
+**Application.cfc**
 * In the datasources struct like so:
 	
 ```js
