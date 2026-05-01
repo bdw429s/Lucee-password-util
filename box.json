@@ -13,8 +13,7 @@
     "shortDescription":"A utility to manage passwords for Lucee and Railo server installs.",
     "type":"modules",
     "scripts":{
-        "postVersion":"package set location='bdw429s/lucee-password-util#v`package version`'",
+        "onRelease":"publish",
         "postPublish":"!git push --follow-tags"
     },
-    "location":"bdw429s/lucee-password-util#v1.0.3"
 }
