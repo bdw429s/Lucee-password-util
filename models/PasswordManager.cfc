@@ -48,13 +48,19 @@ component singleton {
 		// **************************************************************************************************************
 		
         private string function _encrypt(required string pass, required string salt) {
-                var cypher = createobject("java", "lucee.runtime.crypt.BlowfishEasy").init(arguments.salt);
-                return cypher.encryptString(arguments.pass);
+                return _getBlowfish(arguments.salt).encryptString(arguments.pass);
         }
 
         private string function _decrypt(required string pass, required string salt) {
-                var cypher = createobject("java", "lucee.runtime.crypt.BlowfishEasy").init(arguments.salt);
-                return cypher.decryptString(arguments.pass);
+                return _getBlowfish(arguments.salt).decryptString(arguments.pass);
+        }
+
+        private any function _getBlowfish(required string salt) {
+                try {
+                        return createObject("java", "lucee.runtime.crypt.BlowfishEasy").init(arguments.salt);
+                } catch (any e) {
+                        return new BlowfishEasy(arguments.salt);
+                }
         }
         
 		// Encode a string as lowercase hex
