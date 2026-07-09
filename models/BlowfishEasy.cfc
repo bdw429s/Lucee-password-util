@@ -61,15 +61,15 @@ component {
 	 */
 	public any function decryptString(required string cipherText) {
 		// Get the number of estimated bytes (cut off broken blocks)
-		var nLen = bitAnd(int(len(arguments.cipherText) / 2), bitNot(7));
+		var nLen = band(int(len(arguments.cipherText) / 2), bnot(7));
 
 		// Need at least 8 bytes for the CBC IV
 		if (nLen < BLOCKSIZE) return javaCast("null", "");
 
 		// Extract CBC IV (first 16 hex chars = 8 bytes)
 		var ivHex = left(arguments.cipherText, 16);
-		var ivHi = inputBaseN(mid(ivHex, 1, 8), 16);
-		var ivLo = inputBaseN(mid(ivHex, 9, 8), 16);
+		var ivHi = fromHex(mid(ivHex, 1, 8), 16);
+		var ivLo = fromHex(mid(ivHex, 9, 8), 16);
 
 		// Set CBC IV
 		variables.cbcIV_hi = ivHi;
@@ -86,8 +86,8 @@ component {
 		// Decrypt 8 bytes at a time (CBC mode)
 		var buf = [];
 		for (var i = 1; i <= nLen * 2; i += 16) {
-			var blockHi = inputBaseN(mid(dataHex, i, 8), 16);
-			var blockLo = inputBaseN(mid(dataHex, i + 8, 8), 16);
+			var blockHi = fromHex(mid(dataHex, i, 8), 16);
+			var blockLo = fromHex(mid(dataHex, i + 8, 8), 16);
 
 			// Save ciphertext block for CBC
 			var savedHi = blockHi;
@@ -97,22 +97,22 @@ component {
 			var decrypted = decryptBlock(blockHi, blockLo);
 
 			// XOR with CBC IV
-			decrypted[1] = bitXor(decrypted[1], variables.cbcIV_hi);
-			decrypted[2] = bitXor(decrypted[2], variables.cbcIV_lo);
+			decrypted[1] = bxor(decrypted[1], variables.cbcIV_hi);
+			decrypted[2] = bxor(decrypted[2], variables.cbcIV_lo);
 
 			// Update CBC IV
 			variables.cbcIV_hi = savedHi;
 			variables.cbcIV_lo = savedLo;
 
 			// Convert to bytes and append
-			arrayAppend(buf, bitAnd(bitSHRN(decrypted[1], 24), 255));
-			arrayAppend(buf, bitAnd(bitSHRN(decrypted[1], 16), 255));
-			arrayAppend(buf, bitAnd(bitSHRN(decrypted[1], 8), 255));
-			arrayAppend(buf, bitAnd(decrypted[1], 255));
-			arrayAppend(buf, bitAnd(bitSHRN(decrypted[2], 24), 255));
-			arrayAppend(buf, bitAnd(bitSHRN(decrypted[2], 16), 255));
-			arrayAppend(buf, bitAnd(bitSHRN(decrypted[2], 8), 255));
-			arrayAppend(buf, bitAnd(decrypted[2], 255));
+			arrayAppend(buf, band(bshrn(decrypted[1], 24), 255));
+			arrayAppend(buf, band(bshrn(decrypted[1], 16), 255));
+			arrayAppend(buf, band(bshrn(decrypted[1], 8), 255));
+			arrayAppend(buf, band(decrypted[1], 255));
+			arrayAppend(buf, band(bshrn(decrypted[2], 24), 255));
+			arrayAppend(buf, band(bshrn(decrypted[2], 16), 255));
+			arrayAppend(buf, band(bshrn(decrypted[2], 8), 255));
+			arrayAppend(buf, band(decrypted[2], 255));
 		}
 
 		// Get the last padding byte
@@ -124,10 +124,10 @@ component {
 		if (nNumOfBytes < 0) return "";
 
 		// Convert bytes to string (UTF-16BE: pairs of bytes = one char)
-		nNumOfBytes = bitAnd(nNumOfBytes, bitNot(1)); // ensure even
+		nNumOfBytes = band(nNumOfBytes, bnot(1)); // ensure even
 		var result = createObject("java", "java.lang.StringBuilder").init(javaCast("int", nNumOfBytes / 2));
 		for (var i = 1; i <= nNumOfBytes; i += 2) {
-			var charCode = bitOr(bitSHLN(buf[i], 8), buf[i + 1]);
+			var charCode = bor(bshln(buf[i], 8), buf[i + 1]);
 			result.append(javaCast("char", javaCast("int", charCode)));
 		}
 
@@ -154,14 +154,14 @@ component {
 	 */
 	private string function encStr(required string plainText, required numeric ivHi, required numeric ivLo) {
 		var nStrLen = len(arguments.plainText);
-		var bufLen = bitAnd(nStrLen * 2, -8) + 8;
+		var bufLen = band(nStrLen * 2, -8) + 8;
 
 		// Build byte array from string (UTF-16BE) with PKCS5 padding
 		var buf = [];
 		for (var i = 1; i <= nStrLen; i++) {
 			var c = asc(mid(arguments.plainText, i, 1));
-			arrayAppend(buf, bitAnd(bitSHRN(c, 8), 255));
-			arrayAppend(buf, bitAnd(c, 255));
+			arrayAppend(buf, band(bshrn(c, 8), 255));
+			arrayAppend(buf, band(c, 255));
 		}
 		var bPadVal = bufLen - (nStrLen * 2);
 		while (arrayLen(buf) < bufLen) {
@@ -175,12 +175,12 @@ component {
 		// Encrypt in CBC mode, 8 bytes at a time
 		var result = "";
 		for (var i = 1; i <= bufLen; i += 8) {
-			var blockHi = bitOr(bitOr(bitOr(bitSHLN(buf[i], 24), bitSHLN(buf[i+1], 16)), bitSHLN(buf[i+2], 8)), buf[i+3]);
-			var blockLo = bitOr(bitOr(bitOr(bitSHLN(buf[i+4], 24), bitSHLN(buf[i+5], 16)), bitSHLN(buf[i+6], 8)), buf[i+7]);
+			var blockHi = bor(bor(bor(bshln(buf[i], 24), bshln(buf[i+1], 16)), bshln(buf[i+2], 8)), buf[i+3]);
+			var blockLo = bor(bor(bor(bshln(buf[i+4], 24), bshln(buf[i+5], 16)), bshln(buf[i+6], 8)), buf[i+7]);
 
 			// XOR with CBC IV
-			blockHi = bitXor(blockHi, variables.cbcIV_hi);
-			blockLo = bitXor(blockLo, variables.cbcIV_lo);
+			blockHi = bxor(blockHi, variables.cbcIV_hi);
+			blockLo = bxor(blockLo, variables.cbcIV_lo);
 
 			// Encrypt
 			var encrypted = encryptBlock(blockHi, blockLo);
@@ -189,13 +189,13 @@ component {
 			variables.cbcIV_hi = encrypted[1];
 			variables.cbcIV_lo = encrypted[2];
 
-			result &= right("00000000" & formatBaseN(encrypted[1], 16), 8);
-			result &= right("00000000" & formatBaseN(encrypted[2], 16), 8);
+			result &= right("00000000" & toHex(encrypted[1], 16), 8);
+			result &= right("00000000" & toHex(encrypted[2], 16), 8);
 		}
 
 		// Prepend IV
-		var ivStr = right("00000000" & formatBaseN(arguments.ivHi, 16), 8)
-			& right("00000000" & formatBaseN(arguments.ivLo, 16), 8);
+		var ivStr = right("00000000" & toHex(arguments.ivHi, 16), 8)
+			& right("00000000" & toHex(arguments.ivLo, 16), 8);
 
 		return ivStr & result;
 	}
@@ -205,14 +205,14 @@ component {
 	 */
 	private numeric function F(required numeric x) {
 		return add32(
-			bitXor(
+			bxor(
 				add32(
-					variables.sbox1[bitAnd(bitSHRN(arguments.x, 24), 255) + 1],
-					variables.sbox2[bitAnd(bitSHRN(arguments.x, 16), 255) + 1]
+					variables.sbox1[band(bshrn(arguments.x, 24), 255) + 1],
+					variables.sbox2[band(bshrn(arguments.x, 16), 255) + 1]
 				),
-				variables.sbox3[bitAnd(bitSHRN(arguments.x, 8), 255) + 1]
+				variables.sbox3[band(bshrn(arguments.x, 8), 255) + 1]
 			),
-			variables.sbox4[bitAnd(arguments.x, 255) + 1]
+			variables.sbox4[band(arguments.x, 255) + 1]
 		);
 	}
 
@@ -224,41 +224,41 @@ component {
 		var L = arguments.nLeft;
 		var R = arguments.nRight;
 
-		L = bitXor(L, variables.pbox[1]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[2]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[3]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[4]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[5]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[6]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[7]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[8]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[9]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[10]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[11]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[12]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[13]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[14]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[15]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[16]);
-		L = bitXor(L, F(R));
+		L = bxor(L, variables.pbox[1]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[2]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[3]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[4]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[5]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[6]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[7]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[8]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[9]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[10]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[11]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[12]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[13]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[14]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[15]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[16]);
+		L = bxor(L, F(R));
 
 		// Swap and finalize
-		return [bitXor(R, variables.pbox[18]), bitXor(L, variables.pbox[17])];
+		return [bxor(R, variables.pbox[18]), bxor(L, variables.pbox[17])];
 	}
 
 	/**
@@ -269,59 +269,59 @@ component {
 		var L = arguments.nLeft;
 		var R = arguments.nRight;
 
-		L = bitXor(L, variables.pbox[18]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[17]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[16]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[15]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[14]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[13]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[12]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[11]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[10]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[9]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[8]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[7]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[6]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[5]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[4]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[3]);
-		L = bitXor(L, F(R));
+		L = bxor(L, variables.pbox[18]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[17]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[16]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[15]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[14]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[13]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[12]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[11]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[10]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[9]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[8]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[7]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[6]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[5]);
+		L = bxor(L, F(R));
+		L = bxor(L, variables.pbox[4]);
+		R = bxor(R, F(L));
+		R = bxor(R, variables.pbox[3]);
+		L = bxor(L, F(R));
 
 		// Swap and finalize
-		return [bitXor(R, variables.pbox[1]), bitXor(L, variables.pbox[2])];
+		return [bxor(R, variables.pbox[1]), bxor(L, variables.pbox[2])];
 	}
 
 	/**
 	 * 32-bit unsigned addition with wrapping.
 	 */
 	private numeric function add32(required numeric a, required numeric b) {
-		return bitAnd(arguments.a + arguments.b, 4294967295);
+		return band(arguments.a + arguments.b, 4294967295);
 	}
 
 	/**
 	 * Convert 4 bytes from an array (1-based index) to unsigned 32-bit int (big-endian).
 	 */
 	private numeric function byteArrayToInt(required any arr, required numeric startIdx) {
-		var b1 = bitAnd(arguments.arr[arguments.startIdx], 255);
-		var b2 = bitAnd(arguments.arr[arguments.startIdx + 1], 255);
-		var b3 = bitAnd(arguments.arr[arguments.startIdx + 2], 255);
-		var b4 = bitAnd(arguments.arr[arguments.startIdx + 3], 255);
-		return bitOr(bitOr(bitOr(bitSHLN(b1, 24), bitSHLN(b2, 16)), bitSHLN(b3, 8)), b4);
+		var b1 = band(arguments.arr[arguments.startIdx], 255);
+		var b2 = band(arguments.arr[arguments.startIdx + 1], 255);
+		var b3 = band(arguments.arr[arguments.startIdx + 2], 255);
+		var b4 = band(arguments.arr[arguments.startIdx + 3], 255);
+		return bor(bor(bor(bshln(b1, 24), bshln(b2, 16)), bshln(b3, 8)), b4);
 	}
 
 	/**
@@ -343,11 +343,11 @@ component {
 		for (var i = 1; i <= PBOX_ENTRIES; i++) {
 			var nBuild = 0;
 			for (var j = 1; j <= 4; j++) {
-				nBuild = bitOr(bitSHLN(nBuild, 8), bitAnd(arguments.bfkey[nKeyPos], 255));
+				nBuild = bor(bshln(nBuild, 8), band(arguments.bfkey[nKeyPos], 255));
 				nKeyPos++;
 				if (nKeyPos > nLen) nKeyPos = 1;
 			}
-			variables.pbox[i] = bitXor(variables.pbox[i], nBuild);
+			variables.pbox[i] = bxor(variables.pbox[i], nBuild);
 		}
 
 		// Encrypt all boxes with the all-zero string
@@ -379,6 +379,57 @@ component {
 			variables.sbox4[i] = result[1];
 			variables.sbox4[i + 1] = result[2];
 		}
+	}
+
+	// ===== 32-bit bitwise helpers (BigInteger-backed) =====
+	// Lucee's native bit BIFs (bitXor/bitAnd/...) declare their arguments as
+	// `integer` (signed 32-bit) and reject any unsigned value above 2,147,483,647.
+	// This cipher works in unsigned 32-bit space, so words like pbox[2]
+	// (2,242,054,355) trip that check. These helpers do the math via
+	// java.math.BigInteger and stay in the unsigned 32-bit domain, matching the
+	// original semantics without the argument type restriction.
+
+	private any function bi(required numeric v) {
+		return createObject("java", "java.math.BigInteger").valueOf(javaCast("long", arguments.v));
+	}
+
+	// formatBaseN/inputBaseN replacements: the native BIFs cast their numeric
+	// argument to a signed 32-bit int, which overflows for unsigned 32-bit words
+	// (e.g. 2,190,225,219). BigInteger converts without that restriction.
+	private string function toHex(required numeric v, numeric radix = 16) {
+		return bi(arguments.v).toString(javaCast("int", arguments.radix));
+	}
+
+	private numeric function fromHex(required string digits, numeric radix = 16) {
+		return createObject("java", "java.math.BigInteger")
+			.init(arguments.digits, javaCast("int", arguments.radix))
+			.longValue();
+	}
+
+	private numeric function bxor(required numeric a, required numeric b) {
+		return bi(arguments.a).xor(bi(arguments.b)).longValue();
+	}
+
+	private numeric function band(required numeric a, required numeric b) {
+		return bi(arguments.a).and(bi(arguments.b)).longValue();
+	}
+
+	private numeric function bor(required numeric a, required numeric b) {
+		return bi(arguments.a).or(bi(arguments.b)).longValue();
+	}
+
+	private numeric function bnot(required numeric a) {
+		return bi(arguments.a).not().longValue();
+	}
+
+	private numeric function bshln(required numeric a, required numeric bits) {
+		// shift left, then mask back to 32 bits to preserve unsigned semantics
+		return bi(arguments.a).shiftLeft(javaCast("int", arguments.bits)).and(bi(4294967295)).longValue();
+	}
+
+	private numeric function bshrn(required numeric a, required numeric bits) {
+		// values here are non-negative unsigned 32-bit, so this is a logical shift
+		return bi(arguments.a).shiftRight(javaCast("int", arguments.bits)).longValue();
 	}
 
 }
