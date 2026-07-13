@@ -68,12 +68,12 @@ component {
 
 		// Extract CBC IV (first 16 hex chars = 8 bytes)
 		var ivHex = left(arguments.cipherText, 16);
-		var ivHi = inputBaseN(mid(ivHex, 1, 8), 16);
-		var ivLo = inputBaseN(mid(ivHex, 9, 8), 16);
+		var ivHi = toInt32(inputBaseN(mid(ivHex, 1, 8), 16));
+		var ivLo = toInt32(inputBaseN(mid(ivHex, 9, 8), 16));
 
 		// Set CBC IV
-		variables.cbcIV_hi = ivHi;
-		variables.cbcIV_lo = ivLo;
+		variables.cbcIV_hi = toInt32(ivHi);
+		variables.cbcIV_lo = toInt32(ivLo);
 
 		// Remaining data
 		nLen -= BLOCKSIZE;
@@ -86,8 +86,8 @@ component {
 		// Decrypt 8 bytes at a time (CBC mode)
 		var buf = [];
 		for (var i = 1; i <= nLen * 2; i += 16) {
-			var blockHi = inputBaseN(mid(dataHex, i, 8), 16);
-			var blockLo = inputBaseN(mid(dataHex, i + 8, 8), 16);
+			var blockHi = toInt32(inputBaseN(mid(dataHex, i, 8), 16));
+			var blockLo = toInt32(inputBaseN(mid(dataHex, i + 8, 8), 16));
 
 			// Save ciphertext block for CBC
 			var savedHi = blockHi;
@@ -97,12 +97,12 @@ component {
 			var decrypted = decryptBlock(blockHi, blockLo);
 
 			// XOR with CBC IV
-			decrypted[1] = bitXor(decrypted[1], variables.cbcIV_hi);
-			decrypted[2] = bitXor(decrypted[2], variables.cbcIV_lo);
+			decrypted[1] = toInt32(bitXor(decrypted[1], variables.cbcIV_hi));
+			decrypted[2] = toInt32(bitXor(decrypted[2], variables.cbcIV_lo));
 
 			// Update CBC IV
-			variables.cbcIV_hi = savedHi;
-			variables.cbcIV_lo = savedLo;
+			variables.cbcIV_hi = toInt32(savedHi);
+			variables.cbcIV_lo = toInt32(savedLo);
 
 			// Convert to bytes and append
 			arrayAppend(buf, bitAnd(bitSHRN(decrypted[1], 24), 255));
@@ -169,33 +169,33 @@ component {
 		}
 
 		// Set CBC IV
-		variables.cbcIV_hi = arguments.ivHi;
-		variables.cbcIV_lo = arguments.ivLo;
+		variables.cbcIV_hi = toInt32(arguments.ivHi);
+		variables.cbcIV_lo = toInt32(arguments.ivLo);
 
 		// Encrypt in CBC mode, 8 bytes at a time
 		var result = "";
 		for (var i = 1; i <= bufLen; i += 8) {
-			var blockHi = bitOr(bitOr(bitOr(bitSHLN(buf[i], 24), bitSHLN(buf[i+1], 16)), bitSHLN(buf[i+2], 8)), buf[i+3]);
-			var blockLo = bitOr(bitOr(bitOr(bitSHLN(buf[i+4], 24), bitSHLN(buf[i+5], 16)), bitSHLN(buf[i+6], 8)), buf[i+7]);
+			var blockHi = toInt32(bitOr(bitOr(bitOr(bitSHLN(buf[i], 24), bitSHLN(buf[i+1], 16)), bitSHLN(buf[i+2], 8)), buf[i+3]));
+			var blockLo = toInt32(bitOr(bitOr(bitOr(bitSHLN(buf[i+4], 24), bitSHLN(buf[i+5], 16)), bitSHLN(buf[i+6], 8)), buf[i+7]));
 
 			// XOR with CBC IV
-			blockHi = bitXor(blockHi, variables.cbcIV_hi);
-			blockLo = bitXor(blockLo, variables.cbcIV_lo);
+			blockHi = toInt32(bitXor(blockHi, variables.cbcIV_hi));
+			blockLo = toInt32(bitXor(blockLo, variables.cbcIV_lo));
 
 			// Encrypt
 			var encrypted = encryptBlock(blockHi, blockLo);
 
 			// Encrypted block becomes new CBC IV
-			variables.cbcIV_hi = encrypted[1];
-			variables.cbcIV_lo = encrypted[2];
+			variables.cbcIV_hi = toInt32(encrypted[1]);
+			variables.cbcIV_lo = toInt32(encrypted[2]);
 
-			result &= right("00000000" & formatBaseN(encrypted[1], 16), 8);
-			result &= right("00000000" & formatBaseN(encrypted[2], 16), 8);
+			result &= right("00000000" & formatBaseN(toUInt32(encrypted[1]), 16), 8);
+			result &= right("00000000" & formatBaseN(toUInt32(encrypted[2]), 16), 8);
 		}
 
 		// Prepend IV
-		var ivStr = right("00000000" & formatBaseN(arguments.ivHi, 16), 8)
-			& right("00000000" & formatBaseN(arguments.ivLo, 16), 8);
+		var ivStr = right("00000000" & formatBaseN(toUInt32(arguments.ivHi), 16), 8)
+			& right("00000000" & formatBaseN(toUInt32(arguments.ivLo), 16), 8);
 
 		return ivStr & result;
 	}
@@ -204,16 +204,18 @@ component {
 	 * Blowfish Feistel function.
 	 */
 	private numeric function F(required numeric x) {
-		return add32(
+		var x32 = toInt32(arguments.x);
+
+		return toInt32(add32(
 			bitXor(
 				add32(
-					variables.sbox1[bitAnd(bitSHRN(arguments.x, 24), 255) + 1],
-					variables.sbox2[bitAnd(bitSHRN(arguments.x, 16), 255) + 1]
+					variables.sbox1[bitAnd(bitSHRN(x32, 24), 255) + 1],
+					variables.sbox2[bitAnd(bitSHRN(x32, 16), 255) + 1]
 				),
-				variables.sbox3[bitAnd(bitSHRN(arguments.x, 8), 255) + 1]
+				variables.sbox3[bitAnd(bitSHRN(x32, 8), 255) + 1]
 			),
-			variables.sbox4[bitAnd(arguments.x, 255) + 1]
-		);
+			variables.sbox4[bitAnd(x32, 255) + 1]
+		));
 	}
 
 	/**
@@ -221,44 +223,44 @@ component {
 	 * @return array of [hi, lo]
 	 */
 	private array function encryptBlock(required numeric nLeft, required numeric nRight) {
-		var L = arguments.nLeft;
-		var R = arguments.nRight;
+		var L = toInt32(arguments.nLeft);
+		var R = toInt32(arguments.nRight);
 
-		L = bitXor(L, variables.pbox[1]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[2]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[3]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[4]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[5]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[6]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[7]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[8]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[9]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[10]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[11]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[12]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[13]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[14]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[15]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[16]);
-		L = bitXor(L, F(R));
+		L = toInt32(bitXor(L, variables.pbox[1]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[2]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[3]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[4]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[5]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[6]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[7]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[8]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[9]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[10]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[11]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[12]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[13]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[14]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[15]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[16]));
+		L = toInt32(bitXor(L, F(R)));
 
 		// Swap and finalize
-		return [bitXor(R, variables.pbox[18]), bitXor(L, variables.pbox[17])];
+		return [toInt32(bitXor(R, variables.pbox[18])), toInt32(bitXor(L, variables.pbox[17]))];
 	}
 
 	/**
@@ -266,51 +268,69 @@ component {
 	 * @return array of [hi, lo]
 	 */
 	private array function decryptBlock(required numeric nLeft, required numeric nRight) {
-		var L = arguments.nLeft;
-		var R = arguments.nRight;
+		var L = toInt32(arguments.nLeft);
+		var R = toInt32(arguments.nRight);
 
-		L = bitXor(L, variables.pbox[18]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[17]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[16]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[15]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[14]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[13]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[12]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[11]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[10]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[9]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[8]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[7]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[6]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[5]);
-		L = bitXor(L, F(R));
-		L = bitXor(L, variables.pbox[4]);
-		R = bitXor(R, F(L));
-		R = bitXor(R, variables.pbox[3]);
-		L = bitXor(L, F(R));
+		L = toInt32(bitXor(L, variables.pbox[18]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[17]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[16]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[15]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[14]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[13]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[12]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[11]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[10]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[9]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[8]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[7]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[6]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[5]));
+		L = toInt32(bitXor(L, F(R)));
+		L = toInt32(bitXor(L, variables.pbox[4]));
+		R = toInt32(bitXor(R, F(L)));
+		R = toInt32(bitXor(R, variables.pbox[3]));
+		L = toInt32(bitXor(L, F(R)));
 
 		// Swap and finalize
-		return [bitXor(R, variables.pbox[1]), bitXor(L, variables.pbox[2])];
+		return [toInt32(bitXor(R, variables.pbox[1])), toInt32(bitXor(L, variables.pbox[2]))];
+	}
+
+	/**
+	 * Convert a number to a signed 32-bit integer.
+	 */
+	private numeric function toInt32(required numeric n) {
+		var value = bitAnd(arguments.n, 4294967295);
+		if (value >= 2147483648) {
+			value = value - 4294967296;
+		}
+		return javacast("int", value);
+	}
+
+	/**
+	 * Convert a number to an unsigned 32-bit range (0..4294967295).
+	 */
+	private numeric function toUInt32(required numeric n) {
+		return bitAnd(arguments.n, 4294967295);
 	}
 
 	/**
 	 * 32-bit unsigned addition with wrapping.
 	 */
 	private numeric function add32(required numeric a, required numeric b) {
-		return bitAnd(arguments.a + arguments.b, 4294967295);
+		return toInt32(arguments.a + arguments.b);
 	}
 
 	/**
@@ -321,7 +341,7 @@ component {
 		var b2 = bitAnd(arguments.arr[arguments.startIdx + 1], 255);
 		var b3 = bitAnd(arguments.arr[arguments.startIdx + 2], 255);
 		var b4 = bitAnd(arguments.arr[arguments.startIdx + 3], 255);
-		return bitOr(bitOr(bitOr(bitSHLN(b1, 24), bitSHLN(b2, 16)), bitSHLN(b3, 8)), b4);
+		return toInt32(bitOr(bitOr(bitOr(bitSHLN(b1, 24), bitSHLN(b2, 16)), bitSHLN(b3, 8)), b4));
 	}
 
 	/**
@@ -343,11 +363,11 @@ component {
 		for (var i = 1; i <= PBOX_ENTRIES; i++) {
 			var nBuild = 0;
 			for (var j = 1; j <= 4; j++) {
-				nBuild = bitOr(bitSHLN(nBuild, 8), bitAnd(arguments.bfkey[nKeyPos], 255));
+				nBuild = toInt32(bitOr(bitSHLN(toInt32(nBuild), 8), bitAnd(arguments.bfkey[nKeyPos], 255)));
 				nKeyPos++;
 				if (nKeyPos > nLen) nKeyPos = 1;
 			}
-			variables.pbox[i] = bitXor(variables.pbox[i], nBuild);
+			variables.pbox[i] = toInt32(bitXor(variables.pbox[i], nBuild));
 		}
 
 		// Encrypt all boxes with the all-zero string
@@ -356,28 +376,28 @@ component {
 		// so input XOR IV = output XOR output = 0 for every subsequent call.
 		for (var i = 1; i <= PBOX_ENTRIES; i += 2) {
 			var result = encryptBlock(0, 0);
-			variables.pbox[i] = result[1];
-			variables.pbox[i + 1] = result[2];
+			variables.pbox[i] = toInt32(result[1]);
+			variables.pbox[i + 1] = toInt32(result[2]);
 		}
 		for (var i = 1; i <= SBOX_ENTRIES; i += 2) {
 			var result = encryptBlock(0, 0);
-			variables.sbox1[i] = result[1];
-			variables.sbox1[i + 1] = result[2];
+			variables.sbox1[i] = toInt32(result[1]);
+			variables.sbox1[i + 1] = toInt32(result[2]);
 		}
 		for (var i = 1; i <= SBOX_ENTRIES; i += 2) {
 			var result = encryptBlock(0, 0);
-			variables.sbox2[i] = result[1];
-			variables.sbox2[i + 1] = result[2];
+			variables.sbox2[i] = toInt32(result[1]);
+			variables.sbox2[i + 1] = toInt32(result[2]);
 		}
 		for (var i = 1; i <= SBOX_ENTRIES; i += 2) {
 			var result = encryptBlock(0, 0);
-			variables.sbox3[i] = result[1];
-			variables.sbox3[i + 1] = result[2];
+			variables.sbox3[i] = toInt32(result[1]);
+			variables.sbox3[i + 1] = toInt32(result[2]);
 		}
 		for (var i = 1; i <= SBOX_ENTRIES; i += 2) {
 			var result = encryptBlock(0, 0);
-			variables.sbox4[i] = result[1];
-			variables.sbox4[i + 1] = result[2];
+			variables.sbox4[i] = toInt32(result[1]);
+			variables.sbox4[i + 1] = toInt32(result[2]);
 		}
 	}
 
