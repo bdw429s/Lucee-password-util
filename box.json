@@ -1,19 +1,32 @@
 {
-    "name":"Lucee Pasword Util",
-    "version":"1.1.2",
-    "author":"Brad Wood",
-    "homepage":"https://github.com/bdw429s/lucee-password-util",
-    "documentation":"https://github.com/bdw429s/lucee-password-util",
-    "repository":{
-        "type":"git",
-        "URL":"https://github.com/bdw429s/lucee-password-util.git"
+    "name": "Lucee Pasword Util",
+    "version": "1.1.2",
+    "author": "Brad Wood",
+    "homepage": "https://github.com/bdw429s/lucee-password-util",
+    "documentation": "https://github.com/bdw429s/lucee-password-util",
+    "repository": {
+        "type": "git",
+        "URL": "https://github.com/bdw429s/lucee-password-util.git"
     },
-    "bugs":"https://github.com/bdw429s/lucee-password-util/issues",
-    "slug":"lucee-password-util",
-    "shortDescription":"A utility to manage passwords for Lucee and Railo server installs.",
-    "type":"modules",
-    "scripts":{
-        "onRelease":"publish",
-        "postPublish":"!git push --follow-tags"
+    "bugs": "https://github.com/bdw429s/lucee-password-util/issues",
+    "slug": "lucee-password-util",
+    "shortDescription": "A utility to manage passwords for Lucee and Railo server installs.",
+    "type": "modules",
+    "scripts": {
+        "preVersion": "package run-script build",
+        "onRelease": "publish",
+        "postPublish": "!git push --follow-tags",
+        "build": "java compile"
+    },
+    "java": {
+        "source": "src/main/java",
+        "classes": "build/classes/java/main",
+        "libsDir": "lib",
+        "jar": true,
+        "jarName": "blowfish-util.jar",
+        "compileOptions": {
+            "release": 8,
+            "encoding": "UTF-8"
+        }
     }
 }

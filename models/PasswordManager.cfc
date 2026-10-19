@@ -55,12 +55,18 @@ component singleton {
                 return _getBlowfish(arguments.salt).decryptString(arguments.pass);
         }
 
-        private any function _getBlowfish(required string salt) {
-                try {
-                        return createObject("java", "lucee.runtime.crypt.BlowfishEasy").init(arguments.salt);
-                } catch (any e) {
-                        return new BlowfishEasy(arguments.salt);
+        // Load the bundled Blowfish class from our own jar exactly once, and reuse
+        // the cached class reference for the life of this (singleton) instance.
+        private any function _getBlowfishClass() {
+                if (!structKeyExists(variables, "blowfishClass")) {
+                        var jarPath = expandPath("/lucee-password-util/lib/blowfish-util.jar");
+                        variables.blowfishClass = createObject("java", "passwordutil.Blowfish", jarPath);
                 }
+                return variables.blowfishClass;
+        }
+
+        private any function _getBlowfish(required string salt) {
+                return _getBlowfishClass().init(arguments.salt);
         }
         
 		// Encode a string as lowercase hex
